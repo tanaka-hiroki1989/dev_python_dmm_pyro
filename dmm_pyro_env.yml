@@ -1,0 +1,11 @@
+
+
+name:dmm_pyro_env
+dependencies:
+- python=3.6.13
+- pytorch=1.9.1
+- torchvision=0.10.1
+- pyro=1.8.0
+- requests=2.27.1
+- pip:
+  - observations=0.1.4
