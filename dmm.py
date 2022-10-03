@@ -5,6 +5,7 @@ import pyro
 import pyro.distributions as dist
 from pyro.optim import ClippedAdam
 from pyro.infer import SVI,Trace_ELBO
+from tqdm import tqdm
 
 class Emittion(nn.Module):
     def __init__(self):
@@ -71,9 +72,10 @@ def main():
     adam = ClippedAdam(adam_params)
     elbo = Trace_ELBO()
     svi = SVI(dmm.model, dmm.guide, adam, loss=elbo)
-    for iter in range(100):
-        loss = svi.step(data)
-        print(iter,loss)
+    with open("dmm.log","w") as f:
+        for _ in tqdm(range(10000)):
+            loss = svi.step(data)
+            print(loss,file=f)
     
 if __name__ == "__main__":
     main()
