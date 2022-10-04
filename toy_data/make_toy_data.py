@@ -30,8 +30,12 @@ def make_toy_data(T=100,change_point = 40):
         else:
             _z_seq.append(transition(_z_seq[-1],A_after,b_after,eps))
     z_seq = np.array(_z_seq)
-    z_seq = x_seq.reshape(T,1,3)
+    z_seq = z_seq.reshape(T+1,1,2)
     x_seq = np.array(_x_seq)
     x_seq = x_seq.reshape(T,1,3)
     np.save("z_seq_"+str(T)+"_"+str(change_point)+".npy",z_seq)
     np.save("x_seq_"+str(T)+"_"+str(change_point)+".npy",x_seq)
+
+if __name__ =="__main__":
+    make_toy_data(100,40)
+    make_toy_data(1000,400)
