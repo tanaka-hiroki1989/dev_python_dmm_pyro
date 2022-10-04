@@ -61,8 +61,7 @@ class DMM(nn.Module):
             pyro.sample("Z_%d" % t,dist.Normal(z_loc,0.01).to_event(1))
 
 def main():
-    data = np.load("toy_data/x_seq.npy")
-    data = data.reshape(1000,1,3)
+    data = np.load("toy_data/x_seq_1000_400.npy")
     data = torch.from_numpy(data).float()
     dmm = DMM()
     adam_params = {
@@ -73,10 +72,10 @@ def main():
     elbo = Trace_ELBO()
     svi = SVI(dmm.model, dmm.guide, adam, loss=elbo)
     with open("dmm.log","w") as f:
-        for _ in tqdm(range(10000)):
+        for _ in tqdm(range(100)):
             loss = svi.step(data)
             print(loss,file=f)
     
 if __name__ == "__main__":
-    main()
+    DMM(100)
 
