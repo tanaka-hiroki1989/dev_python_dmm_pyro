@@ -24,12 +24,12 @@ class Transition(nn.Module):
         return mean
 
 class change_point_DMM(nn.Module):
-    def __init__(self):
+    def __init__(self,length=1000):
         super().__init__()
         self.emittion = Emittion()
         self.transition_before = Transition()
         self.transition_after = Transition()
-        self.length = 1000
+        self.length = length
         self.rnn = nn.RNN(
             input_size=3,
             hidden_size=2,
@@ -44,7 +44,7 @@ class change_point_DMM(nn.Module):
         pi = torch.tensor([1.0]*self.length)
         cp = pyro.sample("C",dist.Categorical(torch.softmax(pi,0,dtype=torch.double)))
         z_prev = self.z_0
-        for t in range(1, cp):
+        for t in range(1, cp+1):
             z_loc = self.transition_before(z_prev)
             z_t = pyro.sample("Z_%d" % t,dist.Normal(z_loc,0.01).to_event(1))           
             emission_probs_t = self.emittion(z_t)
@@ -54,7 +54,33 @@ class change_point_DMM(nn.Module):
                 obs=data[t]
             )
             z_prev = z_t
-        for t in range(cp, self.length):
+        for t in range(cp+1, self.length):
+            z_loc = self.transition_after(z_prev)
+            z_t = pyro.sample("Z_%d" % t,dist.Normal(z_loc,0.01).to_event(1))           
+            emission_probs_t = self.emittion(z_t)
+            pyro.sample(
+                "X_%d" % t,
+                dist.Normal(emission_probs_t,0.01).to_event(1),
+                obs=data[t]
+            )
+            z_prev = z_t
+
+    def model_long_span(self,data):        
+        pyro.module("dmm", self)
+        pi = torch.tensor([1.0]*self.length)
+        cp = pyro.sample("C",dist.Categorical(torch.softmax(pi,0,dtype=torch.double)))
+        z_prev = self.z_0
+        for t in range(1, cp+1):
+            z_loc = self.transition_before(z_prev)
+            z_t = pyro.sample("Z_%d" % t,dist.Normal(z_loc,0.01).to_event(1))           
+            emission_probs_t = self.emittion(z_t)
+            pyro.sample(
+                "X_%d" % t,
+                dist.Normal(emission_probs_t,0.01).to_event(1),
+                obs=data[t]
+            )
+            z_prev = z_t
+        for t in range(cp+1, self.length):
             z_loc = self.transition_after(z_prev)
             z_t = pyro.sample("Z_%d" % t,dist.Normal(z_loc,0.01).to_event(1))           
             emission_probs_t = self.emittion(z_t)
@@ -75,24 +101,7 @@ class change_point_DMM(nn.Module):
             z_loc = rnn_output[t-1]
             pyro.sample("Z_%d" % t,dist.Normal(z_loc,0.01).to_event(1))
 
-def main():
-    data = np.load("toy_data/x_seq.npy")
-    data = data.reshape(1000,1,3)
-    data = torch.from_numpy(data).float()
-    change_point_dmm = change_point_DMM()
-    adam_params = {
-        "lr": 0.003,
-        "clip_norm": 1.0
-    }
-    adam = ClippedAdam(adam_params)
-    elbo = Trace_ELBO()
-    svi = SVI(change_point_dmm.model, change_point_dmm.guide, adam, loss=elbo)
-    with open("dmm.log","w") as f:
-        for step in tqdm(range(100)):
-            loss = svi.step(data)
-            print(step,loss,file=f)
-    
-    
+      
 if __name__ == "__main__":
-    main()
+    change_point_DMM(100)
 
