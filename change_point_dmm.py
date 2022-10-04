@@ -65,12 +65,12 @@ class change_point_DMM(nn.Module):
             )
             z_prev = z_t
 
-    def model_long_span(self,data):        
+    def model_long_span(self,data,term=5):        
         pyro.module("dmm", self)
-        pi = torch.tensor([1.0]*self.length)
+        pi = torch.tensor([1.0]*term)
         cp = pyro.sample("C",dist.Categorical(torch.softmax(pi,0,dtype=torch.double)))
         z_prev = self.z_0
-        for t in range(1, cp+1):
+        for t in range(1, 200*cp+1):
             z_loc = self.transition_before(z_prev)
             z_t = pyro.sample("Z_%d" % t,dist.Normal(z_loc,0.01).to_event(1))           
             emission_probs_t = self.emittion(z_t)
@@ -80,7 +80,7 @@ class change_point_DMM(nn.Module):
                 obs=data[t]
             )
             z_prev = z_t
-        for t in range(cp+1, self.length):
+        for t in range(200*cp+1, self.length):
             z_loc = self.transition_after(z_prev)
             z_t = pyro.sample("Z_%d" % t,dist.Normal(z_loc,0.01).to_event(1))           
             emission_probs_t = self.emittion(z_t)
@@ -94,6 +94,15 @@ class change_point_DMM(nn.Module):
     def guide(self,data):
         pyro.module("dmm", self)
         pi = pyro.param('pi',lambda: torch.tensor([1.0]*self.length))
+        pyro.sample("C", dist.Categorical(torch.softmax(pi,0,torch.double)))
+        h0 = self.h_0
+        rnn_output, _ = self.rnn(data,h0)      
+        for t in range(1, self.length):
+            z_loc = rnn_output[t-1]
+            pyro.sample("Z_%d" % t,dist.Normal(z_loc,0.01).to_event(1))
+    def long_span_guide(self,data,term=5):
+        pyro.module("dmm", self)
+        pi = pyro.param('pi',lambda: torch.tensor([1.0]*term))
         pyro.sample("C", dist.Categorical(torch.softmax(pi,0,torch.double)))
         h0 = self.h_0
         rnn_output, _ = self.rnn(data,h0)      
