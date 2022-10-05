@@ -4,18 +4,21 @@ from math import cos,sin
 def make_toy_data(T=100,change_point = 40):
     z_init = np.array([[5.0],[0.0]])
     alpha1 = 0.1
-    rotation = np.array([[cos(alpha1),-sin(alpha1)],
+    alpha2 = 0.0
+    rotation_before = np.array([[cos(alpha1),-sin(alpha1)],
         [sin(alpha1),cos(alpha1)]])
+    rotation_after = np.array([[cos(alpha2),-sin(alpha2)],
+    [sin(alpha2),cos(alpha2)]])
     lambda_before = 1.0
-    lambda_after = 0.99
-    A_before = lambda_before * rotation 
-    A_after = lambda_after * rotation
+    lambda_after = 0.9
+    A_before = lambda_before * rotation_before 
+    A_after = lambda_after * rotation_after
     b_before = np.array([[0.0],[0.0]])
     b_after = np.array([[0.0],[0.0]])
     B= np.array([[0.7,0.3],[0.8,0.2],[0.2,0.8]])
    
     def transition(z,A,b,eps):
-        return A @ (z - b) + b + np.random.randn(2,1) * eps
+        return A @ (z - b) + b 
 
     def emmition(B,z):
         return B @ z + np.random.randn(3,1)
