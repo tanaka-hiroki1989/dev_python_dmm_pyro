@@ -39,7 +39,10 @@ class change_point_DMM(nn.Module):
         self.z_0 = nn.Parameter(torch.zeros(2))
         self.h_0 = nn.Parameter(torch.zeros((1, 1, 2)))
 
-    def model(self,data):        
+    def model1(self,data):
+        """
+        C : Categorical
+        """
         pyro.module("dmm", self)
         pi = torch.tensor([1.0]*self.length)
         cp = pyro.sample("C",dist.Categorical(torch.softmax(pi,0,dtype=torch.double)))
@@ -65,7 +68,10 @@ class change_point_DMM(nn.Module):
             )
             z_prev = z_t
 
-    def guide(self,data):
+    def guide1(self,data):
+        """
+        C : Categorical
+        """
         pyro.module("dmm", self)
         pi = pyro.param('pi',lambda: torch.tensor([1.0]*self.length))
         pyro.sample("C", dist.Categorical(torch.softmax(pi,0,torch.double)))
